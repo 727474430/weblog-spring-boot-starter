@@ -1,9 +1,11 @@
-###A custom spring boot starter project.
+### A custom spring boot starter project.
 
-Primary provides the function of interface request log information printing,
+​    Primary provides the function of interface request log information printing,
 which simplifies the need to write an interface request log function for each project.
 
-###How to use:
+
+
+### How to use.
 
 1. git clone https://github.com/727474430/weblog-spring-boot-starter.git
 
@@ -42,7 +44,7 @@ which simplifies the need to write an interface request log function for each pr
 
      Need to printing request header，Use ";" split multiple headers
 
-### Example
+### Example.
 
 ```yaml
 web.log:
