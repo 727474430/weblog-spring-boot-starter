@@ -1,15 +1,17 @@
 package com.raindrop.web.log.filter;
 
-import com.raindrop.web.log.util.ResponseWarrperd;
+import com.raindrop.web.log.util.MyRequestWrapper;
+import com.raindrop.web.log.util.MyResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Enumeration;
 
 /**
  * @name: com.raindrop.web.log.filter.WebLoggingFilter.java
@@ -25,35 +27,64 @@ public class WebLoggingFilter implements Filter {
 	/** Need to print header */
 	private String printHeader;
 
+	@Override
 	public void init(FilterConfig filterConfig) { }
 
+	@Override
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
 		HttpServletRequest request = (HttpServletRequest) servletRequest;
 		HttpServletResponse response = (HttpServletResponse) servletResponse;
 		String uri = request.getRequestURI().substring(request.getContextPath().length()).replaceAll("[/]+$", "");
-		// Packaging Response, To get response data
-		ResponseWarrperd responseWarrperd = new ResponseWarrperd(response);
+		// Packaging Response And Request, To get response and request data
+		MyResponseWrapper responseWrapper = new MyResponseWrapper(response);
+		MyRequestWrapper requestWrapper = new MyRequestWrapper(request);
 		// To meet the conditions conduct log print
 		if (!isContains(excludeMappingPath, uri)) {
 			// Print specified header
-			String headers = getRequestHeaders(request, printHeader);
-			// Print json format the request data
-			String parameters = getRequestParameters(request);
+			String headers = getRequestHeaders(requestWrapper, printHeader);
+			String parameters = "";
+			if (request.getContentType().indexOf("application/x-www-form-urlencoded") != -1) {
+				// Print form format the request data
+				parameters = getFormRequestParameters(request);
+			} else {
+				// Print json format the request data
+				parameters = getJsonRequestParameters(requestWrapper);
+			}
 			LOGGER.info("Request: method={}; content type={}; url={} \r\nRequest Headers: {} \r\nRequest Body={}",
-					request.getMethod(), request.getContentType(), request.getRequestURL().toString(),
+					requestWrapper.getMethod(), requestWrapper.getContentType(), requestWrapper.getRequestURL().toString(),
 					headers, parameters);
 
 			long startTime = System.currentTimeMillis();
-			chain.doFilter(request, responseWarrperd);
+			chain.doFilter(requestWrapper, responseWrapper);
 			long endTime = System.currentTimeMillis();
 
-			String result = new String(responseWarrperd.getResponseData());
+			String result = "";
+			if (response.getContentType().indexOf("text/html") == -1) {
+				result = new String(responseWrapper.getResponseData());
+			}
 			handlerResponse(response, result);
 			LOGGER.info("Response: status={}; \r\nResponse Body={} \r\nRequest time [{}ms]",
 					response.getStatus(), result, endTime - startTime);
 		} else {
 			chain.doFilter(request, response);
 		}
+	}
+
+	/**
+	 * Get Form Format Request Data
+	 *
+	 * @param request
+	 * @return
+	 */
+	private String getFormRequestParameters(HttpServletRequest request) {
+		StringBuilder sb = new StringBuilder();
+		Enumeration<String> parameterNames = request.getParameterNames();
+		while (parameterNames.hasMoreElements()) {
+			String key = parameterNames.nextElement();
+			String value = request.getParameter(key);
+			sb.append("\t" + key + ": " + value + "\t");
+		}
+		return sb.toString();
 	}
 
 	/**
@@ -81,8 +112,12 @@ public class WebLoggingFilter implements Filter {
 	 */
 	private boolean isContains(String excludeMappingPath, String uri) {
 		String[] excludeMappingPaths = excludeMappingPath != null ? excludeMappingPath.split(";") : new String[0];
-		List<String> excludes = Arrays.asList(excludeMappingPaths);
-		return excludes.contains(uri);
+		for (int i = 0; i < excludeMappingPaths.length; i++) {
+			if (uri.indexOf(excludeMappingPaths[i]) != -1) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -91,15 +126,16 @@ public class WebLoggingFilter implements Filter {
 	 * @param request
 	 * @return
 	 */
-	private String getRequestParameters(HttpServletRequest request) {
+	private String getJsonRequestParameters(HttpServletRequest request) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("{\r\n");
-		Map<String, String[]> parameterMap = request.getParameterMap();
-		Set<Map.Entry<String, String[]>> entries = parameterMap.entrySet();
-		for (Map.Entry<String, String[]> entry : entries) {
-			String key = entry.getKey();
-			String value = entry.getValue()[0];
-			sb.append("\t" + key + ": " + value + ",\r\n");
+		String line;
+		try {
+			BufferedReader reader = request.getReader();
+			while ((line = reader.readLine()) != null) {
+				sb.append("\t" + line + ",");
+			}
+		} catch (IOException e) {
 		}
 		if (sb.length() > 1) {
 			sb.substring(0, sb.length() - 1);
@@ -130,6 +166,7 @@ public class WebLoggingFilter implements Filter {
 		return sb.toString();
 	}
 
+	@Override
 	public void destroy() { }
 
 	public WebLoggingFilter(String excludeMappingPath, String printHeader) {

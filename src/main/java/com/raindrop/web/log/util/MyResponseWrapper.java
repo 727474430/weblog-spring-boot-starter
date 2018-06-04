@@ -7,21 +7,21 @@ import javax.servlet.http.HttpServletResponseWrapper;
 import java.io.*;
 
 /**
- * @name: com.raindrop.web.log.util.ResponseWarrper.java
+ * @name: com.raindrop.web.log.util.ResponseWrapper.java
  * @description: 获取响应内容工具
  * @author: Wang Liang
  * @create Time: 2018/6/2 20:12
  */
-public class ResponseWarrperd extends HttpServletResponseWrapper {
+public class MyResponseWrapper extends HttpServletResponseWrapper {
 
 	private ByteArrayOutputStream buffer;
 	private ServletOutputStream out;
 	private PrintWriter printWriter;
 
-	public ResponseWarrperd(HttpServletResponse response) throws UnsupportedEncodingException {
+	public MyResponseWrapper(HttpServletResponse response) throws UnsupportedEncodingException {
 		super(response);
 		this.buffer = new ByteArrayOutputStream();
-		this.out = new WapperedOutputStream(buffer);
+		this.out = new WrapperOutputStream(buffer);
 		this.printWriter = new PrintWriter(new OutputStreamWriter(buffer, this.getCharacterEncoding()));
 	}
 
@@ -62,10 +62,10 @@ public class ResponseWarrperd extends HttpServletResponseWrapper {
 	}
 
 	/** 内部类,重写ServletOutputStream.write方法,使用ByteArrayOutputStream替换OutputStream */
-	private class WapperedOutputStream extends ServletOutputStream {
+	private class WrapperOutputStream extends ServletOutputStream {
 		private ByteArrayOutputStream bos;
 
-		public WapperedOutputStream(ByteArrayOutputStream bos) {
+		public WrapperOutputStream(ByteArrayOutputStream bos) {
 			this.bos = bos;
 		}
 
