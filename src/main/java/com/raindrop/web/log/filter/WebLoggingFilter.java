@@ -36,7 +36,7 @@ public class WebLoggingFilter implements Filter {
 		HttpServletResponse response = (HttpServletResponse) servletResponse;
 		String uri = request.getRequestURI().substring(request.getContextPath().length()).replaceAll("[/]+$", "");
 		// Packaging Response And Request, To get response and request data
-		MyResponseWrapper responseWrapper = null;
+		MyResponseWrapper responseWrapper = new MyResponseWrapper(response);
 		MyRequestWrapper requestWrapper = null;
 		// To meet the conditions conduct log print
 		if (!isContains(excludeMappingPath, uri)) {
@@ -57,10 +57,9 @@ public class WebLoggingFilter implements Filter {
 					headers, parameters);
 
 			long startTime = System.currentTimeMillis();
-			chain.doFilter(requestWrapper == null ? request : requestWrapper, response);
+			chain.doFilter(requestWrapper == null ? request : requestWrapper, responseWrapper);
 			long endTime = System.currentTimeMillis();
 
-			responseWrapper = new MyResponseWrapper(response);
 			String result = "";
 			if (response.getContentType() != null && response.getContentType().indexOf("text/html") == -1) {
 				result = new String(responseWrapper.getResponseData());
@@ -70,7 +69,7 @@ public class WebLoggingFilter implements Filter {
 			if ("".equals(result)) {
 				result = new String(responseWrapper.getResponseData());
 			}
-			handlerResponse(responseWrapper == null ? response : responseWrapper, result);
+			handlerResponse(response, result);
 		} else {
 			chain.doFilter(request, response);
 		}
