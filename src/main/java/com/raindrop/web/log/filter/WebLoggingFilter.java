@@ -22,6 +22,7 @@ import java.util.Enumeration;
 public class WebLoggingFilter implements Filter {
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(WebLoggingFilter.class);
+	public static final String POST = "POST";
 	/** No need to filter url */
 	private String excludeMappingPath;
 	/** Need to print header */
@@ -34,27 +35,30 @@ public class WebLoggingFilter implements Filter {
 	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
 		HttpServletRequest request = (HttpServletRequest) servletRequest;
 		HttpServletResponse response = (HttpServletResponse) servletResponse;
-		String uri = request.getRequestURI().substring(request.getContextPath().length()).replaceAll("[/]+$", "");
-		// Packaging Response And Request, To get response and request data
+
+		String uri = request.getRequestURI();
+		String method = request.getMethod();
+		String contentType = request.getContentType();
+		String url = request.getRequestURL().toString();
+
 		MyResponseWrapper responseWrapper = new MyResponseWrapper(response);
 		MyRequestWrapper requestWrapper = null;
+
 		// To meet the conditions conduct log print
 		if (!isContains(excludeMappingPath, uri)) {
 			// Print specified header
 			String headers = getRequestHeaders(request, printHeader);
 
-			String parameters = "";
-			if ("POST".equalsIgnoreCase(request.getMethod())) {
+			// Print json or form format the request data
+			String parameters;
+			if (POST.equalsIgnoreCase(request.getMethod())) {
 				requestWrapper = new MyRequestWrapper(request);
-				// Print json format the request data
 				parameters = requestWrapper.getBody();
 			} else {
-				// Print form format the request data
 				parameters = getFormRequestParameters(request);
 			}
 			LOGGER.info("Request: method={}; content type={}; url={} \r\nRequest Headers: {} \r\nRequest Body={}",
-					request.getMethod(), request.getContentType(), request.getRequestURL().toString(),
-					headers, parameters);
+					method, contentType, url, headers, parameters);
 
 			long startTime = System.currentTimeMillis();
 			chain.doFilter(requestWrapper == null ? request : requestWrapper, responseWrapper);
@@ -67,9 +71,10 @@ public class WebLoggingFilter implements Filter {
 			LOGGER.info("Response: status={}; \r\nResponse Body={} \r\nRequest time [{}ms]",
 					response.getStatus(), result, endTime - startTime);
 			if ("".equals(result)) {
-				result = new String(responseWrapper.getResponseData());
+				result = new String();
 			}
-			handlerResponse(response, result);
+			// write data
+			handlerResponse(response, "".equals(result) ? new String(responseWrapper.getResponseData()) : result);
 		} else {
 			chain.doFilter(request, response);
 		}
