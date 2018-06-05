@@ -3,19 +3,21 @@
 ​    Primary provides the function of interface request log information printing,
 which simplifies the need to write an interface request log function for each project.
 
+[中文注释](https://github.com/727474430/weblog-spring-boot-starter/blob/master/README_CN.md)
+
 
 
 ### How to use.
 
-1. git clone https://github.com/727474430/weblog-spring-boot-starter.git
+1. **git clone https://github.com/727474430/weblog-spring-boot-starter.git**
 
-2. cd weblog-spring-boot-starter
+2. **cd weblog-spring-boot-starter**
 
-3. runing: mvn install
+3. **runing: mvn install**
 
-4. Install the project to your local repository
+4. **Install the project to your local repository**
 
-5. Introducing dependencies in SpringBoot project that nedd to be used
+5. **Introducing dependencies in SpringBoot project that nedd to be used**
 
    ```xml
    <dependency>
@@ -26,23 +28,25 @@ which simplifies the need to write an interface request log function for each pr
    
    ```
 
-6. Add the following attributes in the application.properties/application.yml
+6. Add the following attributes in the **application.properties/application.yml**
 
    * web.log.enable=true 
 
-     Whether to open the log printing function. default is false,not open.  select true is open
+     Whether to open the log printing function. default is **"false"** not open.  select true is open
 
    * web.log.mapping-path=/*
 
-     Need to intercept the path.  /* indicates all. default /*
+     Need to intercept the path.  **/*** indicates all. default **/***
 
    * web.log.exclude-mapping-path=/views/;/icon/
 
-     Need to exclude the path，Use ”;“ split multiple paths
+     Need to exclude the path，Use **”;“** split multiple paths
 
    * web.log.print-header
 
-     Need to printing request header，Use ";" split multiple headers
+     Need to printing request header，Use **";"** split multiple headers
+
+     
 
 ### Example.
 
