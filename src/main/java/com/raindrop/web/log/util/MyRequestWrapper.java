@@ -1,13 +1,12 @@
 package com.raindrop.web.log.util;
 
+import org.springframework.util.StreamUtils;
+
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 
 /**
  * @name: com.raindrop.web.log.util.RequestWrapper.java
@@ -17,23 +16,16 @@ import java.io.InputStreamReader;
  */
 public class MyRequestWrapper extends HttpServletRequestWrapper {
 
-	private final String body;
+	private final byte[] body;
 
 	public MyRequestWrapper(HttpServletRequest request) throws IOException {
 		super(request);
-		StringBuilder sb = new StringBuilder();
-		String line;
-		try (BufferedReader reader = request.getReader()) {
-			while ((line = reader.readLine()) != null) {
-				sb.append(line);
-			}
-		}
-		body = sb.toString();
+		body = StreamUtils.copyToByteArray(request.getInputStream());
 	}
 
 	@Override
 	public ServletInputStream getInputStream() throws IOException {
-		final ByteArrayInputStream bais = new ByteArrayInputStream(body.getBytes());
+		final ByteArrayInputStream bais = new ByteArrayInputStream(body);
 		return new ServletInputStream() {
 			@Override
 			public boolean isFinished() { return false; }
@@ -53,7 +45,7 @@ public class MyRequestWrapper extends HttpServletRequestWrapper {
 		return new BufferedReader(new InputStreamReader(this.getInputStream()));
 	}
 
-	public String getBody() {
-		return body;
+	public String getBody() throws UnsupportedEncodingException {
+		return new String(body, "UTF-8");
 	}
 }
