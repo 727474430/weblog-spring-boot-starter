@@ -17,25 +17,35 @@ import java.io.InputStreamReader;
  */
 public class MyRequestWrapper extends HttpServletRequestWrapper {
 
-	private HttpServletRequest request;
-	private String body;
+	private final String body;
 
 	public MyRequestWrapper(HttpServletRequest request) throws IOException {
 		super(request);
-		this.request = request;
-		body = "";
+		StringBuilder sb = new StringBuilder();
+		String line;
 		try (BufferedReader reader = request.getReader()) {
-			String line;
 			while ((line = reader.readLine()) != null) {
-				body += line;
+				sb.append(line);
 			}
 		}
+		body = sb.toString();
 	}
 
 	@Override
-	public ServletInputStream getInputStream() {
-		final ByteArrayInputStream bis = new ByteArrayInputStream(body.getBytes());
-		return new WrapperInputStream(bis);
+	public ServletInputStream getInputStream() throws IOException {
+		final ByteArrayInputStream bais = new ByteArrayInputStream(body.getBytes());
+		return new ServletInputStream() {
+			@Override
+			public boolean isFinished() { return false; }
+			@Override
+			public boolean isReady() { return false; }
+			@Override
+			public void setReadListener(ReadListener readListener) { }
+			@Override
+			public int read() throws IOException {
+				return bais.read();
+			}
+		};
 	}
 
 	@Override
@@ -43,32 +53,7 @@ public class MyRequestWrapper extends HttpServletRequestWrapper {
 		return new BufferedReader(new InputStreamReader(this.getInputStream()));
 	}
 
-	private class WrapperInputStream extends ServletInputStream {
-
-		private ByteArrayInputStream bis;
-
-		public WrapperInputStream(ByteArrayInputStream bis) {
-			this.bis = bis;
-		}
-
-		@Override
-		public boolean isFinished() {
-			return false;
-		}
-
-		@Override
-		public boolean isReady() {
-			return false;
-		}
-
-		@Override
-		public void setReadListener(ReadListener readListener) {
-		}
-
-		@Override
-		public int read() throws IOException {
-			return bis.read();
-		}
+	public String getBody() {
+		return body;
 	}
-
 }

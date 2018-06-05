@@ -36,35 +36,41 @@ public class WebLoggingFilter implements Filter {
 		HttpServletResponse response = (HttpServletResponse) servletResponse;
 		String uri = request.getRequestURI().substring(request.getContextPath().length()).replaceAll("[/]+$", "");
 		// Packaging Response And Request, To get response and request data
-		MyResponseWrapper responseWrapper = new MyResponseWrapper(response);
-		MyRequestWrapper requestWrapper = new MyRequestWrapper(request);
+		MyResponseWrapper responseWrapper = null;
+		MyRequestWrapper requestWrapper = null;
 		// To meet the conditions conduct log print
 		if (!isContains(excludeMappingPath, uri)) {
 			// Print specified header
-			String headers = getRequestHeaders(requestWrapper, printHeader);
+			String headers = getRequestHeaders(request, printHeader);
+
 			String parameters = "";
-			if (request.getContentType().indexOf("application/x-www-form-urlencoded") != -1) {
+			if ("POST".equalsIgnoreCase(request.getMethod())) {
+				requestWrapper = new MyRequestWrapper(request);
+				// Print json format the request data
+				parameters = requestWrapper.getBody();
+			} else {
 				// Print form format the request data
 				parameters = getFormRequestParameters(request);
-			} else {
-				// Print json format the request data
-				parameters = getJsonRequestParameters(requestWrapper);
 			}
 			LOGGER.info("Request: method={}; content type={}; url={} \r\nRequest Headers: {} \r\nRequest Body={}",
-					requestWrapper.getMethod(), requestWrapper.getContentType(), requestWrapper.getRequestURL().toString(),
+					request.getMethod(), request.getContentType(), request.getRequestURL().toString(),
 					headers, parameters);
 
 			long startTime = System.currentTimeMillis();
-			chain.doFilter(requestWrapper, responseWrapper);
+			chain.doFilter(requestWrapper == null ? request : requestWrapper, response);
 			long endTime = System.currentTimeMillis();
 
+			responseWrapper = new MyResponseWrapper(response);
 			String result = "";
-			if (response.getContentType().indexOf("text/html") == -1) {
+			if (response.getContentType() != null && response.getContentType().indexOf("text/html") == -1) {
 				result = new String(responseWrapper.getResponseData());
 			}
-			handlerResponse(response, result);
 			LOGGER.info("Response: status={}; \r\nResponse Body={} \r\nRequest time [{}ms]",
 					response.getStatus(), result, endTime - startTime);
+			if ("".equals(result)) {
+				result = new String(responseWrapper.getResponseData());
+			}
+			handlerResponse(responseWrapper == null ? response : responseWrapper, result);
 		} else {
 			chain.doFilter(request, response);
 		}
